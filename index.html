@@ -34,7 +34,7 @@
                 flex-direction: column-reverse;
             }
             #sidebar {
-                height: 250px; /* Fixed height for results on mobile */
+                height: 300px; /* Fixed height for results on mobile */
                 width: 100%;
                 overflow-y: auto;
                 flex-shrink: 0;
@@ -140,6 +140,11 @@
             cursor: pointer;
             border: none;
         }
+        /* Custom toggle */
+        .toggle-checkbox:checked { background-color: #2563eb; }
+        .toggle-checkbox:before { content: ''; display: block; width: 1.0rem; height: 1.0rem; background: white; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: absolute; top: 2px; left: 2px; transition: transform 0.2s ease-in-out; }
+        .toggle-checkbox:checked:before { transform: translateX(1rem); }
+
     </style>
     <!-- Load Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" xintegrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -154,10 +159,13 @@
                 <i class="fa-solid fa-mouse-pointer"></i>
             </button>
             <button id="tool-node" title="Add Nodes (N)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
-                <i class="fa-solid fa-circle"></i>
+                <i class="fa-solid fa-circle" style="font-size: 0.6rem"></i>
+            </button>
+            <button id="tool-node-xy" title="Add Node by Coordinates (X)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
+                 <i class="fa-solid fa-crosshairs"></i>
             </button>
             <button id="tool-member" title="Add Members (M)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
-                <i class="fa-solid fa-minus"></i>
+                <i class="fa-solid fa-minus" style="font-size: 1.1rem"></i>
             </button>
             <button id="tool-support" title="Add Supports (S)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
                 <i class="fa-solid fa-person-falling-burst" style="font-size: 1.1rem"></i>
@@ -166,6 +174,16 @@
                 <i class="fa-solid fa-arrow-down-long"></i>
             </button>
         </div>
+        <!-- Edit Tools -->
+        <div class="flex items-center gap-1 border-r border-slate-300 pr-2 flex-wrap">
+             <button id="tool-delete" title="Delete (Delete)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+            <button id="tool-split" title="Divide Member (V)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
+                <i class="fa-solid fa-share-nodes" style="transform: rotate(90deg)"></i>
+            </button>
+        </div>
+
         <!-- View Tools -->
         <div class="flex items-center gap-1 border-r border-slate-300 pr-2 flex-wrap">
             <button id="tool-zoom-in" title="Zoom In (+)" class="w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
@@ -180,6 +198,12 @@
             <button id="tool-pan" title="Pan Tool (H or Middle Mouse)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
                 <i class="fa-solid fa-hand"></i>
             </button>
+            <button id="toggle-node-labels" title="Toggle Node Labels (T)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 active">
+                <span class="font-bold text-sm">N#</span>
+            </button>
+            <button id="toggle-member-labels" title="Toggle Member Labels (Y)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 active">
+                <span class="font-bold text-sm">M#</span>
+            </button>
         </div>
         <!-- Grid Tools -->
         <div class="flex items-center gap-2 border-r border-slate-300 pr-3 flex-wrap">
@@ -189,6 +213,9 @@
             <input type="number" id="grid-size" value="50" min="1" class="w-16 bg-slate-100 border border-slate-300 rounded-md p-1 text-sm h-9">
             <button id="snap-grid" title="Snap to Grid (G)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 active">
                 <i class="fa-solid fa-magnet"></i>
+            </button>
+            <button id="toggle-deformed" title="Show Deformed Shape (D)" class="tool-btn w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
+                <i class="fa-solid fa-draw-polygon"></i>
             </button>
         </div>
         <!-- File & Analyze -->
@@ -201,6 +228,9 @@
             </button>
             <button id="file-save" title="Save (Ctrl+S)" class="w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
                 <i class="fa-solid fa-save"></i>
+            </button>
+            <button id="file-save-img" title="Save as Image" class="w-9 h-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600">
+                <i class="fa-solid fa-camera"></i>
             </button>
             <input type="file" id="file-open-input" class="hidden" accept=".truss">
 
@@ -222,50 +252,40 @@
             </div>
             <!-- Axis Indicator -->
             <div id="axis-indicator" class="absolute top-2 left-2 w-12 h-12 pointer-events-none">
-                <svg viewBox="0 0 50 50">
+                <!-- X axis -->
+                <svg x="0" y="0" viewBox="0 0 50 50">
+                    <defs>
+                        <marker id="arrow-x" viewBox="0 0 10 10" refX="8" refY="5"
+                            markerWidth="6" markerHeight="6"
+                            orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626" />
+                        </marker>
+                        <marker id="arrow-y" viewBox="0 0 10 10" refX="2" refY="5"
+                            markerWidth="6" markerHeight="6"
+                            orient="auto-start-reverse">
+                        <path d="M 0 5 L 10 10 L 10 0 z" fill="#0ea5e9" />
+                        </marker>
+                    </defs>
                     <!-- Y axis -->
-                    <line x1="25" y1="0" x2="25" y2="25" stroke="#0ea5e9" stroke-width="2" />
-                    <text x="28" y="12" fill="#0ea5e9" font-size="10" font-family="sans-serif">Y</text>
-                    <polygon points="25,0 22,5 28,5" fill="#0ea5e9" />
+                    <line x1="10" y1="40" x2="10" y2="10" stroke="#0ea5e9" stroke-width="2" marker-start="url(#arrow-y)" />
+                    <text x="15" y="18" fill="#0ea5e9" font-size="12" font-family="sans-serif">Y</text>
                     <!-- X axis -->
-                    <line x1="25" y1="25" x2="50" y2="25" stroke="#dc2626" stroke-width="2" />
-                    <text x="40" y="22" fill="#dc2626" font-size="10" font-family="sans-serif">X</text>
-                    <polygon points="50,25 45,22 45,28" fill="#dc2626" />
-                    <!-- Origin -->
-                    <circle cx="25" cy="25" r="2" fill="#333" />
+                    <line x1="10" y1="40" x2="40" y2="40" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-x)" />
+                    <text x="35" y="35" fill="#dc2626" font-size="12" font-family="sans-serif">X</text>
                 </svg>
             </div>
+
+            <!-- Deformed Shape Controls -->
+            <div id="deformed-controls" class="absolute bottom-2 right-2 bg-slate-800 bg-opacity-70 text-white text-xs rounded-md px-3 py-2 pointer-events-auto items-center gap-3 hidden">
+                <label for="disp-scale" class="text-sm font-medium">Disp. Scale:</label>
+                <input type="number" id="disp-scale" min="1" value="100" class="w-20 bg-slate-700 border border-slate-500 rounded-md p-1 text-sm h-7">
+            </div>
+
         </div>
 
         <!-- Sidebar / Results Panel -->
         <aside id="sidebar" class="w-full md:w-[350px] bg-white border-t-2 md:border-l-2 border-slate-200 overflow-y-auto p-4 flex flex-col gap-4">
             
-            <!-- View Options -->
-            <div id="view-options" class="p-3 bg-slate-50 rounded-lg border border-slate-200 hidden">
-                <h3 class="font-semibold text-slate-800 mb-3 text-lg">View Options</h3>
-                <div class="flex items-center justify-between">
-                    <label for="toggle-deformed" class_text-sm font-medium text-slate-700">Show Deformed Shape</label>
-                    <input type="checkbox" id="toggle-deformed" class="toggle-checkbox h-5 w-9 rounded-full bg-slate-300 appearance-none cursor-pointer checked:bg-blue-600 transition-colors relative">
-                    <style>
-                        .toggle-checkbox:checked { background-color: #2563eb; }
-                        .toggle-checkbox:before { content: ''; display: block; width: 1.0rem; height: 1.0rem; background: white; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: absolute; top: 2px; left: 2px; transition: transform 0.2s ease-in-out; }
-                        .toggle-checkbox:checked:before { transform: translateX(1rem); }
-                    </style>
-                </div>
-                <div id="deformed-controls" class="mt-3 hidden">
-                    <label for="disp-scale" class="block text-sm font-medium text-slate-700 mb-1">Displacement Scale (<span id="disp-scale-value">100</span>x)</label>
-                    <input type="range" id="disp-scale" min="1" max="1000" value="100" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div class="flex items-center justify-between mt-3">
-                    <label for="toggle-reactions" class_text-sm font-medium text-slate-700">Show Reactions</label>
-                    <input type="checkbox" id="toggle-reactions" class="toggle-checkbox h-5 w-9 rounded-full bg-slate-300 appearance-none cursor-pointer checked:bg-blue-600 transition-colors relative">
-                </div>
-                 <div class="flex items-center justify-between mt-3">
-                    <label for="toggle-forces" class_text-sm font-medium text-slate-700">Show Member Forces</label>
-                    <input type="checkbox" id="toggle-forces" class="toggle-checkbox h-5 w-9 rounded-full bg-slate-300 appearance-none cursor-pointer checked:bg-blue-600 transition-colors relative">
-                </div>
-            </div>
-
             <!-- Analysis Results -->
             <div id="results-container">
                 <h3 class="font-semibold text-slate-800 text-lg">Results</h3>
@@ -335,7 +355,7 @@
                 </div>
                  <div class="mt-4">
                     <button id="save-report" class="w-full h-10 px-4 flex items-center justify-center rounded-md bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors disabled:bg-slate-300" disabled>
-                        <i class="fa-solid fa-file-pdf mr-2"></i> Save PDF Report
+                        <i class="fa-solid fa-file-pdf mr-2"></i> Save Full Report (.pdf)
                     </button>
                 </div>
             </div>
@@ -347,7 +367,7 @@
                 <!-- Node Properties -->
                 <div id="prop-node" class="space-y-3 hidden">
                     <div>
-                        <label class_text-sm font-medium text-slate-700">Node ID</label>
+                        <label class="text-sm font-medium text-slate-700">Node ID</label>
                         <p id="prop-node-id" class="text-lg font-bold text-slate-900"></p>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
@@ -368,7 +388,7 @@
                 <!-- Member Properties -->
                 <div id="prop-member" class="space-y-3 hidden">
                     <div>
-                        <label class_text-sm font-medium text-slate-700">Member ID</label>
+                        <label class="text-sm font-medium text-slate-700">Member ID</label>
                         <p id="prop-member-id" class="text-lg font-bold text-slate-900"></p>
                     </div>
                     <div>
@@ -380,7 +400,7 @@
                         <input type="number" id="prop-member-a" value="1000" min="1" class="w-full bg-slate-100 border border-slate-300 rounded-md p-1.5 text-sm h-9">
                     </div>
                      <button id="prop-member-split" class="w-full h-9 px-4 flex items-center justify-center rounded-md bg-slate-600 text-white font-semibold hover:bg-slate-700">
-                        <i class="fa-solid fa-grip-lines-vertical mr-2"></i> Split Member
+                        <i class="fa-solid fa-share-nodes mr-2" style="transform: rotate(90deg)"></i> Divide Member
                     </button>
                     <button id="prop-member-delete" class="w-full h-9 px-4 flex items-center justify-center rounded-md bg-red-600 text-white font-semibold hover:bg-red-700">
                         <i class="fa-solid fa-trash mr-2"></i> Delete Member
@@ -390,7 +410,7 @@
                 <!-- Support Properties -->
                 <div id="prop-support" class="space-y-3 hidden">
                      <div>
-                        <label class_text-sm font-medium text-slate-700">Support at Node</label>
+                        <label class="text-sm font-medium text-slate-700">Support at Node</label>
                         <p id="prop-support-node" class="text-lg font-bold text-slate-900"></p>
                     </div>
                     <div>
@@ -409,7 +429,7 @@
                 <!-- Load Properties -->
                 <div id="prop-load" class="space-y-3 hidden">
                      <div>
-                        <label class_text-sm font-medium text-slate-700">Load at Node</label>
+                        <label class="text-sm font-medium text-slate-700">Load at Node</label>
                         <p id="prop-load-node" class="text-lg font-bold text-slate-900"></p>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
@@ -454,7 +474,8 @@
                     </div>
                 </div>
             </div>
-			<!-- Developer Info -->
+
+            <!-- Developer Info -->
             <div id="developer-info" class="mt-6 pt-4 border-t border-slate-200">
                 <h4 class="font-semibold text-slate-700 text-sm">Developed by:</h4>
                 <p class="text-sm text-slate-600 mt-1">
@@ -494,21 +515,30 @@
     <!-- Split Member Modal -->
     <div id="modal-split-member" class="modal" style="display: none;">
         <div class="modal-content">
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">Split Member</h3>
+            <h3 class="text-lg font-semibold text-slate-900 mb-4">Divide Member</h3>
             <div>
                 <label for="split-segments" class="block text-sm font-medium text-slate-700">Number of Equal Segments</label>
                 <input type="number" id="split-segments" value="2" min="2" class="mt-1 w-full bg-slate-100 border border-slate-300 rounded-md p-1.5 text-sm h-9">
             </div>
             <div class="flex justify-end gap-2 mt-5">
                 <button id="modal-split-cancel" class="h-9 px-4 flex items-center justify-center rounded-md bg-slate-500 text-white font-semibold hover:bg-slate-600">Cancel</button>
-                <button id="modal-split-ok" class="h-9 px-4 flex items-center justify-center rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700">Split</button>
+                <button id="modal-split-ok" class="h-9 px-4 flex items-center justify-center rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700">Divide</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Progress Modal -->
+    <div id="modal-progress" class="modal" style="display: none;">
+        <div class="modal-content text-center max-w-xs">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-600"></i>
+            <h3 class="text-lg font-semibold text-slate-900 mt-4">Analyzing...</h3>
+            <p class="text-sm text-slate-600">Please wait while the calculation is performed.</p>
         </div>
     </div>
 
     <!-- Right-click Context Menu -->
     <div id="context-menu">
-        <button id="ctx-add-node-xy"><i class="fa-solid fa-crosshairs fa-fw w-5 mr-1"></i> Add Node (X,Y)</button>
+        <button id="ctx-add-node-xy"><i class="fa-solid fa-crosshairs fa-fw w-5 mr-1"></i> Add Node at (X,Y)</button>
         <hr class="border-slate-200 my-1">
         <button id="ctx-zoom-fit"><i class="fa-solid fa-expand fa-fw w-5 mr-1"></i> Zoom to Fit</button>
         <button id="ctx-save-png"><i class="fa-solid fa-image fa-fw w-5 mr-1"></i> Save as PNG</button>
@@ -522,7 +552,7 @@
         const API_KEY = "";
     </script>
     
-    <script type_module">
+    <script type="module">
         // --- CONSTANTS ---
         const SNAP_DIST = 10; // pixels
         const SELECT_DIST = 10; // pixels
@@ -546,7 +576,7 @@
         let nextNodeId = 1;
         let nextMemberId = 1;
         
-        let activeTool = 'select'; // select, node, member, support, load, pan
+        let activeTool = 'select'; // select, node, member, support, load, pan, delete, split
         let previousTool = 'select';
         let memberStartNode = null; // For drawing members
         
@@ -568,10 +598,10 @@
         let snapToGrid = true;
         let analysisRun = false;
         let isDeformedView = false;
-        let showReactions = false;
-        let showForces = false;
         let dispScale = 100;
         let propScale = 1.0;
+        let showNodeLabels = true;
+        let showMemberLabels = true;
         
         // --- DOM ELEMENTS ---
         const canvas = document.getElementById('truss-canvas');
@@ -585,6 +615,7 @@
         // Modals
         const nodeCoordsModal = document.getElementById('modal-node-coords');
         const splitMemberModal = document.getElementById('modal-split-member');
+        const progressModal = document.getElementById('modal-progress');
         
         // Sidebar Panels
         const propertiesPanel = document.getElementById('properties-panel');
@@ -600,7 +631,6 @@
         const propLoad = document.getElementById('prop-load');
 
         // Results Sections
-        const viewOptionsPanel = document.getElementById('view-options');
         const resultsPlaceholder = document.getElementById('results-placeholder');
         const resultsSummary = document.getElementById('results-summary');
         const resultsTables = document.getElementById('results-tables');
@@ -609,6 +639,11 @@
         const geminiOutput = document.getElementById('gemini-output');
         const resultsGemini = document.getElementById('results-gemini');
         const btnSaveReport = document.getElementById('save-report');
+
+        // Deformed Controls
+        const deformedToggleBtn = document.getElementById('toggle-deformed');
+        const deformedControls = document.getElementById('deformed-controls');
+        const dispScaleInput = document.getElementById('disp-scale');
 
         // --- TRANSFORM & COORDINATE FUNCTIONS ---
 
@@ -621,10 +656,10 @@
             canvas.style.height = `${rect.height}px`;
             ctx.scale(dpr, dpr);
             
-            // Center (0,0) on initial load
+            // Set (0,0) to bottom-left on initial load
             if (transform.translateX === 0 && transform.translateY === 0) {
-                transform.translateX = rect.width / 2;
-                transform.translateY = rect.height / 2;
+                transform.translateX = 50; // 50px margin
+                transform.translateY = rect.height - 50; // 50px margin
             }
             draw();
         }
@@ -666,8 +701,8 @@
                 // Reset view
                 const rect = canvasContainer.getBoundingClientRect();
                 transform.scale = 1.0;
-                transform.translateX = rect.width / 2;
-                transform.translateY = rect.height / 2;
+                transform.translateX = 50;
+                transform.translateY = rect.height - 50;
                 draw();
                 return;
             }
@@ -751,7 +786,7 @@
             for (const member of members) {
                 const n1 = nodes.find(n => n.id === member.n1);
                 const n2 = nodes.find(n => n.id === member.n2);
-                if (!n1 || !n2) continue;
+                if (!n1 || !n2) return;
                 
                 const p1 = worldToScreen(n1.x, n1.y);
                 const p2 = worldToScreen(n2.x, n2.y);
@@ -912,6 +947,12 @@
 
         function splitSelectedMember() {
             if (!selection || selection.type !== 'member') return;
+            showSplitMemberModal(selection.id);
+        }
+        
+        function showSplitMemberModal(memberId) {
+            const member = members.find(m => m.id === memberId);
+            if (!member) return;
             
             // Show modal
             splitMemberModal.style.display = 'flex';
@@ -922,7 +963,7 @@
             const okListener = () => {
                 const segments = parseInt(document.getElementById('split-segments').value);
                 if (segments >= 2) {
-                    splitMember(selection.id, segments);
+                    splitMember(memberId, segments);
                     selectObject(null); // Deselect after splitting
                 }
                 splitMemberModal.style.display = 'none';
@@ -977,6 +1018,7 @@
             ctx.clearRect(0, 0, rect.width, rect.height);
             
             drawGrid();
+            drawAxes();
             
             // Draw dimmed original shape if deformed
             if (isDeformedView) {
@@ -988,6 +1030,7 @@
                 drawNodes(false);
                 drawLoads();
                 drawSupports();
+                drawReactions();
             }
             
             // Draw member-in-progress
@@ -1003,10 +1046,6 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
-            
-            // Draw analysis results if enabled
-            if (showReactions) drawReactions();
-            if (showForces) drawForces();
         }
 
         function drawGrid() {
@@ -1039,14 +1078,25 @@
                 ctx.lineTo(rect.width, p.y);
             }
             ctx.stroke();
-            
-            // Draw Origin Axes
+        }
+
+        function drawAxes() {
+            const rect = canvasContainer.getBoundingClientRect();
             const origin = worldToScreen(0, 0);
-            ctx.beginPath();
-            ctx.strokeStyle = "#94a3b8"; // slate-400
+
+            ctx.strokeStyle = "#64748b"; // slate-500
+            ctx.fillStyle = "#64748b";
             ctx.lineWidth = 1.5;
+            ctx.font = `${Math.min(14, 14 / transform.scale)}px sans-serif`;
+
+            // Y-Axis
+            ctx.beginPath();
             ctx.moveTo(origin.x, 0);
             ctx.lineTo(origin.x, rect.height);
+            ctx.stroke();
+
+            // X-Axis
+            ctx.beginPath();
             ctx.moveTo(0, origin.y);
             ctx.lineTo(rect.width, origin.y);
             ctx.stroke();
@@ -1061,6 +1111,14 @@
                 ctx.arc(p.x, p.y, (isSelected && !dimmed) ? NODE_RADIUS_SELECT : NODE_RADIUS, 0, 2 * Math.PI);
                 ctx.fillStyle = dimmed ? "#cbd5e1" : (isSelected ? "#2563eb" : "#334155"); // slate-300, blue-600, slate-700
                 ctx.fill();
+
+                if (showNodeLabels && !dimmed) {
+                    ctx.fillStyle = "#1d4ed8"; // blue-700
+                    ctx.font = "bold 12px sans-serif";
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(node.id, p.x, p.y - NODE_RADIUS - 2);
+                }
             });
         }
         
@@ -1080,6 +1138,23 @@
                 ctx.strokeStyle = dimmed ? "#e2e8f0" : (isSelected ? "#2563eb" : "#64748b"); // slate-200, blue-600, slate-500
                 ctx.lineWidth = (isSelected && !dimmed) ? 4 : 2;
                 ctx.stroke();
+
+                if (showMemberLabels && !dimmed) {
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    ctx.fillStyle = "#475569"; // slate-600
+                    ctx.font = "12px sans-serif";
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Add a small white bg for readability
+                    const textMetrics = ctx.measureText(member.id);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.fillRect(midX - textMetrics.width / 2 - 2, midY - 6, textMetrics.width + 4, 12);
+                    
+                    ctx.fillStyle = "#475569";
+                    ctx.fillText(member.id, midX, midY);
+                }
             });
         }
         
@@ -1132,24 +1207,29 @@
                     ctx.stroke();
                 } else if (support.type === 'roller-y') { // Fixed X, rolls in Y
                     // Triangle rotated
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p.x - s, p.y - s);
-                    ctx.lineTo(p.x - s, p.y + s);
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(-Math.PI / 2); // Rotate -90 degrees
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0); // Node position
+                    ctx.lineTo(-s, s);
+                    ctx.lineTo(s, s);
                     ctx.closePath();
                     ctx.fill();
                     ctx.stroke();
-                    // Rollers
+                     // Rollers
                     ctx.beginPath();
-                    ctx.arc(p.x - s - s/4, p.y - s/2, s/4, 0, 2 * Math.PI);
+                    ctx.arc(-s/2, s + s/4, s/4, 0, 2 * Math.PI);
                     ctx.stroke();
                     ctx.beginPath();
-                    ctx.arc(p.x - s - s/4, p.y + s/2, s/4, 0, 2 * Math.PI);
+                    ctx.arc(s/2, s + s/4, s/4, 0, 2 * Math.PI);
                     ctx.stroke();
                     // Base line
                     ctx.beginPath();
-                    ctx.moveTo(p.x - s - s/2, p.y - s - s/3);
-                    ctx.lineTo(p.x - s - s/2, p.y + s + s/3);
+                    ctx.moveTo(-s - s/3, s + s/2);
+                    ctx.lineTo(s + s/3, s + s/2);
                     ctx.stroke();
+                    ctx.restore();
                 }
             });
         }
@@ -1276,43 +1356,6 @@
             });
         }
         
-        function drawForces() {
-             if (!analysisRun) return;
-             
-             let minForce = 0, maxForce = 0;
-             members.forEach(m => {
-                minForce = Math.min(minForce, m.force);
-                maxForce = Math.max(maxForce, m.force);
-             });
-             const maxAbs = Math.max(Math.abs(minForce), Math.abs(maxForce), 1);
-             
-             ctx.font = `${12 / transform.scale}px Arial`;
-             ctx.textAlign = 'center';
-             ctx.textBaseline = 'middle';
-             
-             members.forEach(m => {
-                const n1 = nodes.find(n => n.id === m.n1);
-                const n2 = nodes.find(n => n.id === m.n2);
-                if (!n1 || !n2) return;
-                
-                const midX = (n1.x + n2.x) / 2;
-                const midY = (n1.y + n2.y) / 2;
-                const p = worldToScreen(midX, midY);
-                
-                let color = "#94a3b8"; // slate-400 (zero force)
-                if (m.force > 0) { // Tension
-                    const intensity = Math.min(1, m.force / maxAbs) * 0.6 + 0.4;
-                    color = `rgba(37, 99, 235, ${intensity})`; // blue-600
-                } else if (m.force < 0) { // Compression
-                    const intensity = Math.min(1, Math.abs(m.force) / maxAbs) * 0.6 + 0.4;
-                    color = `rgba(220, 38, 38, ${intensity})`; // red-600
-                }
-                
-                ctx.fillStyle = color;
-                ctx.fillText(m.force.toFixed(1), p.x, p.y);
-             });
-        }
-        
         function drawArrow(start, end, headSize, color) {
             const ux = end.x - start.x;
             const uy = end.y - start.y;
@@ -1396,15 +1439,12 @@
             resultsPlaceholder.textContent = "Run analysis to see results.";
             resultsSummary.classList.remove('hidden');
             resultsTables.classList.add('hidden');
-            viewOptionsPanel.classList.add('hidden');
             resultsGemini.classList.add('hidden');
             btnSaveReport.disabled = true;
+            
             isDeformedView = false;
-            document.getElementById('toggle-deformed').checked = false;
-            showReactions = false;
-            document.getElementById('toggle-reactions').checked = false;
-            showForces = false;
-            document.getElementById('toggle-forces').checked = false;
+            deformedToggleBtn.classList.remove('active');
+            deformedControls.classList.add('hidden');
 
             if (selection) {
                 showProperties(selection);
@@ -1503,6 +1543,25 @@
                         setActiveTool('select');
                     }
                     break;
+                case 'delete':
+                    if (hit) {
+                        if (hit.type === 'node') deleteNode(hit.id);
+                        if (hit.type === 'member') deleteMember(hit.id);
+                        if (hit.type === 'support') deleteSupport(hit.id);
+                        if (hit.type === 'load') deleteLoad(hit.id);
+                        
+                        if (selection && selection.id === hit.id) {
+                            selectObject(null);
+                        }
+                        clearAnalysisResults();
+                        draw();
+                    }
+                    break;
+                case 'split':
+                    if (hit && hit.type === 'member') {
+                        showSplitMemberModal(hit.id);
+                    }
+                    break;
             }
         }
         
@@ -1550,6 +1609,12 @@
             } else if (activeTool === 'member' || activeTool === 'support' || activeTool === 'load') {
                  const hit = findHit(mouseX, mouseY, SNAP_DIST);
                  cursor = (hit && hit.type === 'node') ? 'pointer' : 'crosshair';
+            } else if (activeTool === 'delete') {
+                const hit = findHit(mouseX, mouseY);
+                cursor = hit ? 'not-allowed' : 'crosshair';
+            } else if (activeTool === 'split') {
+                 const hit = findHit(mouseX, mouseY);
+                 cursor = (hit && hit.type === 'member') ? 'pointer' : 'crosshair';
             }
             canvas.style.cursor = cursor;
             
@@ -1567,8 +1632,8 @@
                     setActiveTool(previousTool);
                 }
             }
-            canvas.style.cursor = activeTool === 'pan' ? 'grab' : 'crosshair';
-            if (activeTool === 'select') canvas.style.cursor = 'default';
+            // Reset cursor
+            handleMouseMove(e);
         }
         
         function handleWheel(e) {
@@ -1611,14 +1676,27 @@
             switch(e.key.toLowerCase()) {
                 case 'q': setActiveTool('select'); break;
                 case 'n': setActiveTool('node'); break;
+                case 'x': 
+                    setActiveTool('node-xy'); 
+                    document.getElementById('ctx-add-node-xy').click();
+                    break;
                 case 'm': setActiveTool('member'); break;
                 case 's': setActiveTool('support'); break;
                 case 'l': setActiveTool('load'); break;
+                case 'd': 
+                    document.getElementById('toggle-deformed').click();
+                    break;
+                case 'v': setActiveTool('split'); break;
                 case 'h': setActiveTool('pan'); break;
                 case 'f': zoomToFit(); break;
                 case 'g': 
-                    snapToGrid = !snapToGrid;
-                    snapGridBtn.classList.toggle('active', snapToGrid);
+                    document.getElementById('snap-grid').click();
+                    break;
+                case 't':
+                    document.getElementById('toggle-node-labels').click();
+                    break;
+                case 'y':
+                    document.getElementById('toggle-member-labels').click();
                     break;
                 case 'delete':
                 case 'backspace':
@@ -1633,6 +1711,10 @@
                     if (activeTool !== 'select') {
                         setActiveTool('select');
                     }
+                    // Close modals
+                    nodeCoordsModal.style.display = 'none';
+                    splitMemberModal.style.display = 'none';
+                    progressModal.style.display = 'none';
                     draw();
                     break;
                 case '=':
@@ -1646,9 +1728,18 @@
         }
         
         function setActiveTool(tool) {
+            // Handle special case for node-xy modal
+            if (tool === 'node-xy') {
+                if (activeTool !== 'node-xy') {
+                    previousTool = activeTool;
+                }
+                activeTool = 'node-xy'; // Set it so it doesn't revert
+                return; // Don't change button styles
+            }
+
             if (activeTool === 'pan') {
                 previousTool = 'select'; // Always revert pan to select
-            } else if (tool !== 'pan') {
+            } else {
                  previousTool = activeTool;
             }
             activeTool = tool;
@@ -1657,20 +1748,23 @@
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
             const activeBtn = document.getElementById(`tool-${tool}`);
             if (activeBtn) {
-                activeBtn.classList.add('active');
+                // Don't auto-active the label toggles
+                if (tool !== 'toggle-node-labels' && tool !== 'toggle-member-labels') {
+                    activeBtn.classList.add('active');
+                }
             }
             
+            // Keep label toggles in their own state
+            document.getElementById('toggle-node-labels').classList.toggle('active', showNodeLabels);
+            document.getElementById('toggle-member-labels').classList.toggle('active', showMemberLabels);
+            document.getElementById('snap-grid').classList.toggle('active', snapToGrid);
+            document.getElementById('toggle-deformed').classList.toggle('active', isDeformedView);
+
             // Reset member drawing
             memberStartNode = null;
             
             // Set cursor
-            if (tool === 'pan') {
-                canvas.style.cursor = 'grab';
-            } else if (tool === 'select') {
-                canvas.style.cursor = 'default';
-            } else {
-                 canvas.style.cursor = 'crosshair';
-            }
+            handleMouseMove({ clientX: lastMouse.x, clientY: lastMouse.y });
             draw();
         }
 
@@ -1688,7 +1782,12 @@
                     E: parseFloat(document.getElementById('default-E').value) || DEFAULT_E,
                     A: parseFloat(document.getElementById('default-A').value) || DEFAULT_A,
                 },
-                transform
+                transform,
+                view: {
+                    showNodeLabels,
+                    showMemberLabels,
+                    snapToGrid
+                }
             };
             const json = JSON.stringify(data, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
@@ -1733,9 +1832,19 @@
                             transform = data.transform;
                         }
                         
+                        // Load view settings
+                        if (data.view) {
+                            showNodeLabels = data.view.showNodeLabels !== false; // default true
+                            showMemberLabels = data.view.showMemberLabels !== false; // default true
+                            snapToGrid = data.view.snapToGrid !== false; // default true
+                        }
+                        
                         selectObject(null);
                         clearAnalysisResults();
-                        draw();
+                        setActiveTool(activeTool); // Refreshes all tool button states
+                        
+                        // Zoom to fit loaded model
+                        setTimeout(zoomToFit, 50);
                     } else {
                         alert("Invalid file format.");
                     }
@@ -1751,16 +1860,24 @@
         function saveDiagram(format = 'png') {
             const dpr = window.devicePixelRatio || 1;
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
+            const rect = canvasContainer.getBoundingClientRect();
+            tempCanvas.width = rect.width * dpr;
+            tempCanvas.height = rect.height * dpr;
             const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.scale(dpr, dpr);
             
             // Draw white background
             tempCtx.fillStyle = 'white';
-            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tempCtx.fillRect(0, 0, rect.width, rect.height);
             
             // Draw current canvas on top
-            tempCtx.drawImage(canvas, 0, 0);
+            // We need to re-render everything onto the temp canvas
+            // because drawImage(canvas) might be empty.
+            // Temporarily swap contexts
+            const oldCtx = ctx;
+            ctx = tempCtx;
+            draw(); // Draw everything onto tempCtx
+            ctx = oldCtx; // Swap back
 
             // Trigger download
             const link = document.createElement('a');
@@ -1772,214 +1889,236 @@
         // --- ANALYSIS ---
 
         function runAnalysis() {
-            clearAnalysisResults(); // Clear previous results
+            progressModal.style.display = 'flex';
             
-            const numNodes = nodes.length;
-            const numMembers = members.length;
-            
-            if (numNodes === 0) {
-                alert("Cannot analyze: No nodes found.");
-                return;
-            }
-
-            // --- 1. Initialize ---
-            const nodeMap = {}; // Map node.id to index (0...N-1)
-            nodes.forEach((n, i) => nodeMap[n.id] = i);
-            
-            const N_DOF = numNodes * 2;
-            const K = math.zeros(N_DOF, N_DOF); // Global stiffness matrix
-            const F = math.zeros(N_DOF); // Global force vector
-            const U = math.zeros(N_DOF); // Global displacement vector
-            
-            const dofMap = []; // Map (0...N_DOF-1) to true (free) or false (fixed)
-            for (let i = 0; i < N_DOF; i++) dofMap.push(true);
-
-            // --- 2. Apply Boundary Conditions (Supports) ---
-            supports.forEach(s => {
-                const i = nodeMap[s.nodeId];
-                if (s.type === 'pinned') {
-                    dofMap[i*2] = false;     // Fix X
-                    dofMap[i*2 + 1] = false; // Fix Y
-                } else if (s.type === 'roller-x') { // Fixed Y
-                    dofMap[i*2 + 1] = false;
-                } else if (s.type === 'roller-y') { // Fixed X
-                    dofMap[i*2] = false;
-                }
-            });
-
-            // --- 3. Apply Loads ---
-            loads.forEach(l => {
-                const i = nodeMap[l.nodeId];
-                F.set([i*2], l.fx);
-                F.set([i*2 + 1], l.fy);
-            });
-
-            // --- 4. Assemble Global Stiffness Matrix (K) ---
-            for (const member of members) {
-                const n1 = nodes.find(n => n.id === member.n1);
-                const n2 = nodes.find(n => n.id === member.n2);
-                if (!n1 || !n2) continue;
-                
-                const i = nodeMap[n1.id];
-                const j = nodeMap[n2.id];
-                
-                const dx = n2.x - n1.x;
-                const dy = n2.y - n1.y;
-                const L = Math.sqrt(dx*dx + dy*dy);
-                if (L === 0) {
-                    alert(`Error: Member ${member.id} has zero length.`);
-                    return;
-                }
-                
-                const E = member.E; // MPa (N/mm^2)
-                const A = member.A; // mm^2
-                const k = (E * A) / L; // N/mm
-                
-                const C = dx / L; // cos
-                const S = dy / L; // sin
-                
-                const C2 = C*C;
-                const S2 = S*S;
-                const CS = C*S;
-                
-                // Element stiffness matrix [k_e]
-                const k_e = [
-                    [ k*C2,  k*CS, -k*C2, -k*CS],
-                    [ k*CS,  k*S2, -k*CS, -k*S2],
-                    [-k*C2, -k*CS,  k*C2,  k*CS],
-                    [-k*CS, -k*S2,  k*CS,  k*S2]
-                ];
-                
-                const dofs = [i*2, i*2+1, j*2, j*2+1]; // Global DOF indices
-                
-                // Add k_e to global K
-                for (let row = 0; row < 4; row++) {
-                    for (let col = 0; col < 4; col++) {
-                        const globalRow = dofs[row];
-                        const globalCol = dofs[col];
-                        K.set([globalRow, globalCol], K.get([globalRow, globalCol]) + k_e[row][col]);
+            // Use setTimeout to allow UI to update before blocking
+            setTimeout(() => {
+                try {
+                    clearAnalysisResults(); // Clear previous results
+                    
+                    const numNodes = nodes.length;
+                    
+                    if (numNodes === 0) {
+                        alert("Cannot analyze: No nodes found.");
+                        progressModal.style.display = 'none';
+                        return;
                     }
+
+                    // --- 1. Initialize ---
+                    const nodeMap = {}; // Map node.id to index (0...N-1)
+                    nodes.forEach((n, i) => nodeMap[n.id] = i);
+                    
+                    const N_DOF = numNodes * 2;
+                    const K = math.zeros(N_DOF, N_DOF); // Global stiffness matrix
+                    const F = math.zeros(N_DOF); // Global force vector
+                    const U = math.zeros(N_DOF); // Global displacement vector
+                    
+                    const dofMap = []; // Map (0...N_DOF-1) to true (free) or false (fixed)
+                    for (let i = 0; i < N_DOF; i++) dofMap.push(true);
+
+                    // --- 2. Apply Boundary Conditions (Supports) ---
+                    supports.forEach(s => {
+                        const i = nodeMap[s.nodeId];
+                        if (i === undefined) return; // Support on a non-existent node
+                        if (s.type === 'pinned') {
+                            dofMap[i*2] = false;     // Fix X
+                            dofMap[i*2 + 1] = false; // Fix Y
+                        } else if (s.type === 'roller-x') { // Fixed Y
+                            dofMap[i*2 + 1] = false;
+                        } else if (s.type === 'roller-y') { // Fixed X
+                            dofMap[i*2] = false;
+                        }
+                    });
+
+                    // --- 3. Apply Loads ---
+                    loads.forEach(l => {
+                        const i = nodeMap[l.nodeId];
+                        if (i === undefined) return;
+                        F.set([i*2], l.fx);
+                        F.set([i*2 + 1], l.fy);
+                    });
+
+                    // --- 4. Assemble Global Stiffness Matrix (K) ---
+                    for (const member of members) {
+                        const n1 = nodes.find(n => n.id === member.n1);
+                        const n2 = nodes.find(n => n.id === member.n2);
+                        if (!n1 || !n2) continue;
+                        
+                        const i = nodeMap[n1.id];
+                        const j = nodeMap[n2.id];
+                        
+                        const dx = n2.x - n1.x;
+                        const dy = n2.y - n1.y;
+                        const L = Math.sqrt(dx*dx + dy*dy);
+                        if (L === 0) {
+                            alert(`Error: Member ${member.id} has zero length.`);
+                            progressModal.style.display = 'none';
+                            return;
+                        }
+                        
+                        const E = member.E; // MPa (N/mm^2)
+                        const A = member.A; // mm^2
+                        const k = (E * A) / L; // N/mm
+                        
+                        const C = dx / L; // cos
+                        const S = dy / L; // sin
+                        
+                        const C2 = C*C;
+                        const S2 = S*S;
+                        const CS = C*S;
+                        
+                        // Element stiffness matrix [k_e]
+                        const k_e = [
+                            [ k*C2,  k*CS, -k*C2, -k*CS],
+                            [ k*CS,  k*S2, -k*CS, -k*S2],
+                            [-k*C2, -k*CS,  k*C2,  k*CS],
+                            [-k*CS, -k*S2,  k*CS,  k*S2]
+                        ];
+                        
+                        const dofs = [i*2, i*2+1, j*2, j*2+1]; // Global DOF indices
+                        
+                        // Add k_e to global K
+                        for (let row = 0; row < 4; row++) {
+                            for (let col = 0; col < 4; col++) {
+                                const globalRow = dofs[row];
+                                const globalCol = dofs[col];
+                                K.set([globalRow, globalCol], K.get([globalRow, globalCol]) + k_e[row][col]);
+                            }
+                        }
+                    }
+
+                    // --- 5. Partition Matrix (K_ff, K_fs, K_sf, K_ss) ---
+                    const freeDOFs = [];
+                    const fixedDOFs = [];
+                    dofMap.forEach((isFree, i) => {
+                        if (isFree) freeDOFs.push(i);
+                        else fixedDOFs.push(i);
+                    });
+                    
+                    if (freeDOFs.length === 0) {
+                        alert("Error: Structure is fully restrained.");
+                        progressModal.style.display = 'none';
+                        return;
+                    }
+
+                    const K_ff = K.subset(math.index(freeDOFs, freeDOFs));
+                    const F_f = F.subset(math.index(freeDOFs));
+                    
+                    // --- 6. Solve for Displacements (U_f) ---
+                    let U_f;
+                    try {
+                        U_f = math.lusolve(K_ff, F_f);
+                    } catch (err) {
+                        console.error("Solver error:", err);
+                        alert("Analysis failed. The structure may be unstable (a mechanism). Check your supports.");
+                        progressModal.style.display = 'none';
+                        return;
+                    }
+
+                    // --- 7. Reconstruct Global Displacement Vector (U) ---
+                    U_f.forEach((val, index) => {
+                        const i = index[0]; // Get the integer index from the math.js index array
+                        if (i === undefined) return; // Safety check for simple array iteration
+                        const globalIndex = freeDOFs[i];
+                        U.set([globalIndex], val);
+                    });
+                    
+                    // --- 8. Calculate Reactions (R) ---
+                    let R = math.zeros(N_DOF);
+                    if (fixedDOFs.length > 0) {
+                        const K_sf = K.subset(math.index(fixedDOFs, freeDOFs));
+                        const R_s = math.multiply(K_sf, U_f);
+                        
+                        R_s.forEach((val, index) => {
+                            const i = index[0]; // Get the integer index from the math.js index array
+                            if (i === undefined) return;
+                            const globalIndex = fixedDOFs[i]; 
+                            R.set([globalIndex], val);
+                        });
+                    }
+
+                    // --- 9. Calculate Member Forces & Stresses ---
+                    for (const member of members) {
+                        const n1 = nodes.find(n => n.id === member.n1);
+                        const n2 = nodes.find(n => n.id === member.n2);
+                        if (!n1 || !n2) continue;
+                        
+                        const i = nodeMap[n1.id];
+                        const j = nodeMap[n2.id];
+                        
+                        const dx = n2.x - n1.x;
+                        const dy = n2.y - n1.y;
+                        const L = Math.sqrt(dx*dx + dy*dy);
+                        
+                        const C = dx / L;
+                        const S = dy / L;
+                        
+                        const E = member.E;
+                        const A = member.A;
+                        
+                        // Get displacements for this member's nodes
+                        const u_i_x = U.get([i*2]);
+                        const u_i_y = U.get([i*2 + 1]);
+                        const u_j_x = U.get([j*2]);
+                        const u_j_y = U.get([j*2 + 1]);
+                        
+                        // delta = [C S -C -S] * [u_i_x, u_i_y, u_j_x, u_j_y]'
+                        const delta = C * (u_j_x - u_i_x) + S * (u_j_y - u_i_y);
+                        
+                        const force = (E * A / L) * delta; // N
+                        const stress = force / A; // MPa
+                        
+                        member.force = force;
+                        member.stress = stress;
+                    }
+
+                    // --- 10. Store Results ---
+                    analysisRun = true;
+                    
+                    // Store Displacements
+                    displacements = nodes.map(n => {
+                        const i = nodeMap[n.id];
+                        return {
+                            nodeId: n.id,
+                            dx: U.get([i*2]), // mm
+                            dy: U.get([i*2 + 1]) // mm
+                        };
+                    });
+                    
+                    // Store Reactions
+                    reactions = supports.map(s => {
+                        const i = nodeMap[s.nodeId];
+                        return {
+                            nodeId: s.nodeId,
+                            rx: R.get([i*2]) || 0, // N
+                            ry: R.get([i*2 + 1]) || 0 // N
+                        };
+                    });
+                    
+                    // --- 11. Display Results ---
+                    displayResults();
+                    
+                } catch (err) {
+                    console.error("Analysis Error:", err);
+                    alert("An unexpected error occurred during analysis: " + err.message);
+                } finally {
+                    progressModal.style.display = 'none'; // Hide modal on success or error
                 }
-            }
-
-            // --- 5. Partition Matrix (K_ff, K_fs, K_sf, K_ss) ---
-            const freeDOFs = [];
-            const fixedDOFs = [];
-            dofMap.forEach((isFree, i) => {
-                if (isFree) freeDOFs.push(i);
-                else fixedDOFs.push(i);
-            });
-            
-            if (freeDOFs.length === 0) {
-                alert("Error: Structure is fully restrained.");
-                return;
-            }
-
-            const K_ff = K.subset(math.index(freeDOFs, freeDOFs));
-            const F_f = F.subset(math.index(freeDOFs));
-            
-            // --- 6. Solve for Displacements (U_f) ---
-            let U_f;
-            try {
-                U_f = math.lusolve(K_ff, F_f);
-            } catch (err) {
-                console.error("Solver error:", err);
-                alert("Analysis failed. The structure may be unstable (a mechanism). Check your supports.");
-                return;
-            }
-
-            // --- 7. Reconstruct Global Displacement Vector (U) ---
-            U_f.forEach((val, index) => {
-                const i = index[0]; // Get the integer index from the math.js index array
-                const globalIndex = freeDOFs[i];
-                U.set([globalIndex], val);
-            });
-            
-            // --- 8. Calculate Reactions (R) ---
-            // R = K_sf * U_f
-            let R = math.zeros(N_DOF);
-            if (fixedDOFs.length > 0) {
-                const K_sf = K.subset(math.index(fixedDOFs, freeDOFs));
-                const R_s = math.multiply(K_sf, U_f);
-                
-                R_s.forEach((val, index) => {
-                    const i = index[0]; // Get the integer index from the math.js index array
-                    const globalIndex = fixedDOFs[i]; 
-                    R.set([globalIndex], val);
-                });
-            }
-
-            // --- 9. Calculate Member Forces & Stresses ---
-            for (const member of members) {
-                const n1 = nodes.find(n => n.id === member.n1);
-                const n2 = nodes.find(n => n.id === member.n2);
-                if (!n1 || !n2) continue;
-                
-                const i = nodeMap[n1.id];
-                const j = nodeMap[n2.id];
-                
-                const dx = n2.x - n1.x;
-                const dy = n2.y - n1.y;
-                const L = Math.sqrt(dx*dx + dy*dy);
-                
-                const C = dx / L;
-                const S = dy / L;
-                
-                const E = member.E;
-                const A = member.A;
-                
-                // Get displacements for this member's nodes
-                const u_i_x = U.get([i*2]);
-                const u_i_y = U.get([i*2 + 1]);
-                const u_j_x = U.get([j*2]);
-                const u_j_y = U.get([j*2 + 1]);
-                
-                // delta = [C S -C -S] * [u_i_x, u_i_y, u_j_x, u_j_y]'
-                const delta = C * (u_j_x - u_i_x) + S * (u_j_y - u_i_y);
-                
-                const force = (E * A / L) * delta; // N
-                const stress = force / A; // MPa
-                
-                member.force = force;
-                member.stress = stress;
-            }
-
-            // --- 10. Store Results ---
-            analysisRun = true;
-            
-            // Store Displacements
-            displacements = nodes.map(n => {
-                const i = nodeMap[n.id];
-                return {
-                    nodeId: n.id,
-                    dx: U.get([i*2]), // mm
-                    dy: U.get([i*2 + 1]) // mm
-                };
-            });
-            
-            // Store Reactions
-            reactions = supports.map(s => {
-                const i = nodeMap[s.nodeId];
-                return {
-                    nodeId: s.nodeId,
-                    rx: R.get([i*2]) || 0, // N
-                    ry: R.get([i*2 + 1]) || 0 // N
-                };
-            });
-            
-            // --- 11. Display Results ---
-            displayResults();
+            }, 10);
         }
         
         function displayResults() {
             resultsPlaceholder.textContent = "Analysis successful.";
             resultsSummary.classList.remove('hidden');
             resultsTables.classList.remove('hidden');
-            viewOptionsPanel.classList.remove('hidden');
             resultsGemini.classList.remove('hidden');
             geminiLoading.classList.add('hidden');
             geminiOutput.classList.add('hidden');
             btnSaveReport.disabled = false;
+            
+            if (isDeformedView) {
+                deformedControls.classList.remove('hidden');
+            }
             
             // Member Forces Table
             const memberTbody = document.getElementById('member-forces-tbody');
@@ -2024,6 +2163,8 @@
                 `;
                 displacementsTbody.appendChild(tr);
             });
+            
+            draw(); // Redraw to show reactions
         }
         
         async function handleGeminiSummary() {
@@ -2040,9 +2181,11 @@
             let maxTension = { id: 0, force: -Infinity };
             let maxCompression = { id: 0, force: Infinity };
             members.forEach(m => {
-                if (m.force > maxTension.force) maxTension = { id: m.id, force: m.force };
-                if (m.force < maxCompression.force) maxCompression = { id: m.id, force: m.force };
+                if (m.force > maxTension.force) maxTension = { id: `${m.n1}-${m.n2}`, force: m.force };
+                if (m.force < maxCompression.force) maxCompression = { id: `${m.n1}-${m.n2}`, force: m.force };
             });
+            maxTension.force = maxTension.force === -Infinity ? 0 : maxTension.force;
+            maxCompression.force = maxCompression.force === Infinity ? 0 : maxCompression.force;
 
             // Find max reaction
             let maxReaction = { id: 0, mag: 0 };
@@ -2115,6 +2258,38 @@
             const pageWidth = doc.internal.pageSize.getWidth();
             const contentWidth = pageWidth - 2 * margin;
             let yPos = margin;
+
+            // Helper to render canvas to an image
+            const captureCanvas = () => {
+                const dpr = window.devicePixelRatio || 1;
+                const tempCanvas = document.createElement('canvas');
+                const rect = canvasContainer.getBoundingClientRect();
+                tempCanvas.width = rect.width * dpr;
+                tempCanvas.height = rect.height * dpr;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.scale(dpr, dpr);
+                
+                tempCtx.fillStyle = 'white';
+                tempCtx.fillRect(0, 0, rect.width, rect.height);
+                
+                const oldCtx = ctx;
+                ctx = tempCtx;
+                draw(); // Draw current state
+                ctx = oldCtx;
+
+                return tempCanvas.toDataURL('image/png');
+            };
+
+            const addImageToPdf = (imgData) => {
+                const imgProps = doc.getImageProperties(imgData);
+                const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
+                if (yPos + imgHeight + 30 > doc.internal.pageSize.getHeight()) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+                doc.addImage(imgData, 'PNG', margin, yPos, contentWidth, imgHeight);
+                yPos += imgHeight + 20;
+            };
             
             // --- Title ---
             doc.setFontSize(18);
@@ -2137,6 +2312,9 @@
                 if (m.stress > 0) maxStressT = Math.max(maxStressT, m.stress);
                 if (m.stress < 0) maxStressC = Math.min(maxStressC, m.stress);
             });
+            maxComp = (maxComp === Infinity) ? 0 : maxComp;
+            maxTension = (maxTension === -Infinity) ? 0 : maxTension;
+            
             let maxReaction = 0;
             reactions.forEach(r => maxReaction = Math.max(maxReaction, Math.sqrt(r.rx**2 + r.ry**2)));
             let maxDisp = 0;
@@ -2146,7 +2324,7 @@
                 `Max Tension Force: ${maxTension.toFixed(2)} N`,
                 `Max Compression Force: ${maxComp.toFixed(2)} N`,
                 `Max Tensile Stress: ${maxStressT > 0 ? maxStressT.toFixed(2) : 'N/A'} MPa`,
-                `Max Compressive Stress: ${maxComp < 0 ? maxStressC.toFixed(2) : 'N/A'} MPa`,
+                `Max Compressive Stress: ${maxStressC < 0 ? maxStressC.toFixed(2) : 'N/A'} MPa`,
                 `Max Reaction Force: ${maxReaction.toFixed(2)} N`,
                 `Max Displacement: ${maxDisp.toFixed(4)} mm`
             ];
@@ -2154,54 +2332,23 @@
             yPos += summaryLines.length * 15 + 20;
             
             // --- Diagrams ---
-            const addImageToPdf = (imgData) => {
-                const imgProps = doc.getImageProperties(imgData);
-                const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
-                if (yPos + imgHeight + 30 > doc.internal.pageSize.getHeight()) {
-                    doc.addPage();
-                    yPos = margin;
-                }
-                doc.addImage(imgData, 'PNG', margin, yPos, contentWidth, imgHeight);
-                yPos += imgHeight + 20;
-            };
 
             // Capture Load Diagram
-            isDeformedView = false; showReactions = false; showForces = false;
-            draw();
-            let imgData = canvas.toDataURL('image/png');
+            const currentDeformed = isDeformedView; // Save current state
+            isDeformedView = false;
+            let imgData = captureCanvas();
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text("Load Diagram", margin, yPos);
+            doc.text("Load & Reaction Diagram", margin, yPos);
             yPos += 15;
             addImageToPdf(imgData);
             
             // Capture Deformed Shape
             isDeformedView = true;
-            draw();
-            imgData = canvas.toDataURL('image/png');
+            imgData = captureCanvas();
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.text(`Deformed Shape (${dispScale}x Scale)`, margin, yPos);
-            yPos += 15;
-            addImageToPdf(imgData);
-            
-            // Capture Reactions
-            isDeformedView = false; showReactions = true;
-            draw();
-            imgData = canvas.toDataURL('image/png');
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text("Reaction Forces", margin, yPos);
-            yPos += 15;
-            addImageToPdf(imgData);
-
-            // Capture Member Forces
-            showReactions = false; showForces = true;
-            draw();
-            imgData = canvas.toDataURL('image/png');
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text("Member Forces", margin, yPos);
             yPos += 15;
             addImageToPdf(imgData);
             
@@ -2264,9 +2411,7 @@
             );
 
             // Restore view
-            isDeformedView = document.getElementById('toggle-deformed').checked;
-            showReactions = document.getElementById('toggle-reactions').checked;
-            showForces = document.getElementById('toggle-forces').checked;
+            isDeformedView = currentDeformed;
             draw();
             
             // Save
@@ -2283,7 +2428,8 @@
             canvas.addEventListener('mouseleave', () => {
                 isPanning = false;
                 isDragging = false;
-                canvas.style.cursor = activeTool === 'select' ? 'default' : 'crosshair';
+                // Reset cursor
+                handleMouseMove({ clientX: lastMouse.x, clientY: lastMouse.y });
             });
             canvas.addEventListener('wheel', handleWheel, { passive: false });
             canvas.addEventListener('contextmenu', handleContextMenu);
@@ -2291,9 +2437,15 @@
             // Toolbar
             document.getElementById('tool-select').addEventListener('click', () => setActiveTool('select'));
             document.getElementById('tool-node').addEventListener('click', () => setActiveTool('node'));
+            document.getElementById('tool-node-xy').addEventListener('click', () => {
+                setActiveTool('node-xy'); // Set tool state
+                document.getElementById('ctx-add-node-xy').click(); // Open modal
+            });
             document.getElementById('tool-member').addEventListener('click', () => setActiveTool('member'));
             document.getElementById('tool-support').addEventListener('click', () => setActiveTool('support'));
             document.getElementById('tool-load').addEventListener('click', () => setActiveTool('load'));
+            document.getElementById('tool-delete').addEventListener('click', () => setActiveTool('delete'));
+            document.getElementById('tool-split').addEventListener('click', () => setActiveTool('split'));
             document.getElementById('tool-pan').addEventListener('click', () => setActiveTool('pan'));
             
             document.getElementById('tool-zoom-in').addEventListener('click', () => {
@@ -2306,6 +2458,17 @@
             });
             document.getElementById('tool-zoom-fit').addEventListener('click', zoomToFit);
             
+            document.getElementById('toggle-node-labels').addEventListener('click', () => {
+                showNodeLabels = !showNodeLabels;
+                document.getElementById('toggle-node-labels').classList.toggle('active', showNodeLabels);
+                draw();
+            });
+            document.getElementById('toggle-member-labels').addEventListener('click', () => {
+                showMemberLabels = !showMemberLabels;
+                document.getElementById('toggle-member-labels').classList.toggle('active', showMemberLabels);
+                draw();
+            });
+
             gridSizeInput.addEventListener('change', () => {
                 gridSize = parseFloat(gridSizeInput.value) || 50;
                 draw();
@@ -2314,15 +2477,27 @@
                 snapToGrid = !snapToGrid;
                 snapGridBtn.classList.toggle('active', snapToGrid);
             });
+            deformedToggleBtn.addEventListener('click', () => {
+                isDeformedView = !isDeformedView;
+                deformedToggleBtn.classList.toggle('active', isDeformedView);
+                deformedControls.classList.toggle('hidden', !isDeformedView || !analysisRun);
+                draw();
+            });
+            dispScaleInput.addEventListener('change', () => {
+                dispScale = parseFloat(dispScaleInput.value) || 100;
+                if (isDeformedView) draw();
+            });
             
             // File
             document.getElementById('file-new').addEventListener('click', clearAll);
             document.getElementById('file-open').addEventListener('click', openFile);
             document.getElementById('file-save').addEventListener('click', saveFile);
+            document.getElementById('file-save-img').addEventListener('click', () => saveDiagram('png'));
             document.getElementById('file-open-input').addEventListener('change', loadFile);
             
             // Analyze
             document.getElementById('analyze').addEventListener('click', runAnalysis);
+            btnGeminiSummary.addEventListener('click', handleGeminiSummary);
             
             // Context Menu
             document.getElementById('ctx-add-node-xy').addEventListener('click', () => {
@@ -2352,16 +2527,21 @@
             });
 
             // Modals
-            document.getElementById('modal-coord-ok').addEventListener('click', () => {
+            const modalCoordOk = document.getElementById('modal-coord-ok');
+            const modalCoordCancel = document.getElementById('modal-coord-cancel');
+            
+            modalCoordOk.addEventListener('click', () => {
                 const x = parseFloat(document.getElementById('coord-x').value);
                 const y = parseFloat(document.getElementById('coord-y').value);
                 if (!isNaN(x) && !isNaN(y)) {
                     addNode(x, y);
                 }
                 nodeCoordsModal.style.display = 'none';
+                setActiveTool(previousTool); // Revert to previous tool
             });
-             document.getElementById('modal-coord-cancel').addEventListener('click', () => {
+             modalCoordCancel.addEventListener('click', () => {
                 nodeCoordsModal.style.display = 'none';
+                setActiveTool(previousTool); // Revert to previous tool
             });
             
             // Sidebar Properties
@@ -2393,30 +2573,6 @@
                 propScaleValue.textContent = propScale.toFixed(1);
                 draw();
             });
-            
-            // View Options
-            const dispScaleSlider = document.getElementById('disp-scale');
-            const dispScaleValue = document.getElementById('disp-scale-value');
-            const deformedControls = document.getElementById('deformed-controls');
-            
-            document.getElementById('toggle-deformed').addEventListener('change', (e) => {
-                isDeformedView = e.target.checked;
-                deformedControls.classList.toggle('hidden', !isDeformedView);
-                draw();
-            });
-            dispScaleSlider.addEventListener('input', () => {
-                dispScale = parseFloat(dispScaleSlider.value);
-                dispScaleValue.textContent = dispScale;
-                if (isDeformedView) draw();
-            });
-            document.getElementById('toggle-reactions').addEventListener('change', (e) => {
-                showReactions = e.target.checked;
-                draw();
-            });
-            document.getElementById('toggle-forces').addEventListener('change', (e) => {
-                showForces = e.target.checked;
-                draw();
-            });
 
             // Report Button
             btnSaveReport.addEventListener('click', handleSaveReport);
@@ -2430,33 +2586,16 @@
         
         // --- GO! ---
         // Need to wait for jspdf and jspdf-autotable to be loaded
-        // A bit of a hack, but simple.
-        function checkLibraries() {
-            if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.autoTable) {
-                init();
-            } else if (window.jspdf && window.jspdf.jsPDF) {
-                 // Load autotable manually
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js';
-                script.onload = () => {
-                    init();
-                };
-                document.head.appendChild(script);
-            } else {
-                console.log("Waiting for libraries...");
-                setTimeout(checkLibraries, 100);
-            }
-        }
-
-        // Wait for all libraries to load
-        // We'll assume jsPDF is the last one we need, but we also need math.js
          window.addEventListener('load', () => {
              function checkLibs() {
-                 if (typeof math !== 'undefined' && typeof window.jspdf !== 'undefined') {
+                 if (typeof math !== 'undefined' && typeof window.jspdf !== 'undefined' && window.jspdf.jsPDF) {
                      // Manually load autotable
                      const script = document.createElement('script');
                      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
-                     script.onload = init;
+                     script.onload = () => {
+                        // Now we can be sure jspdf.jsPDF.autoTable exists
+                        init();
+                     };
                      script.onerror = () => {
                          console.error("Failed to load jspdf-autotable. PDF reports will be limited.");
                          init(); // Init anyway, but reports might fail
